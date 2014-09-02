@@ -2641,7 +2641,6 @@ class PublisherHelperSpec extends Specification {
                 delegate.storageClass(storageClass)
             }
         }
-
         then:
         thrown(IllegalArgumentException)
 
@@ -2726,5 +2725,59 @@ class PublisherHelperSpec extends Specification {
                 value[0].value() == 'value'
             }
         }
+    }
+
+    def 'call flexible publish'() {
+        when:
+        context.flexiblePublish {
+            condition {
+                stringsMatch 'foo', 'bar', false
+            }
+            publisher {
+                mailer('test@test.com')
+            }
+        }
+
+        then:
+        Node fpn = context.publisherNodes[0]
+        fpn.name() == 'org.jenkins__ci.plugins.flexible__publish.FlexiblePublisher'
+        fpn.children().size() == 1
+        fpn.publishers[0].children().size == 1
+
+        Node cpn = fpn.publishers[0].children()[0]
+        cpn.name() == 'org.jenkins__ci.plugins.flexible__publish.ConditionalPublisher'
+        cpn.condition[0].attribute('class') == 'org.jenkins_ci.plugins.run_condition.core.StringsMatchCondition'
+        cpn.condition[0].arg1[0].value() == 'foo'
+        cpn.condition[0].arg2[0].value() == 'bar'
+        cpn.condition[0].ignoreCase[0].value() == 'false'
+        cpn.publisher[0].attribute('class') == 'hudson.tasks.Mailer'
+        cpn.publisher[0].recipients[0].value() == 'test@test.com'
+    }
+
+    def 'call flexible publish with build step'() {
+        when:
+        context.flexiblePublish {
+            condition {
+                stringsMatch 'foo', 'bar', false
+            }
+            step {
+                shell('echo hello')
+            }
+        }
+
+        then:
+        Node fpn = context.publisherNodes[0]
+        fpn.name() == 'org.jenkins__ci.plugins.flexible__publish.FlexiblePublisher'
+        fpn.children().size() == 1
+        fpn.publishers[0].children().size == 1
+
+        Node cpn = fpn.publishers[0].children()[0]
+        cpn.name() == 'org.jenkins__ci.plugins.flexible__publish.ConditionalPublisher'
+        cpn.condition[0].attribute('class') == 'org.jenkins_ci.plugins.run_condition.core.StringsMatchCondition'
+        cpn.condition[0].arg1[0].value() == 'foo'
+        cpn.condition[0].arg2[0].value() == 'bar'
+        cpn.condition[0].ignoreCase[0].value() == 'false'
+        cpn.publisher[0].attribute('class') == 'hudson.tasks.Shell'
+        cpn.publisher[0].command[0].value() == 'echo hello'
     }
 }

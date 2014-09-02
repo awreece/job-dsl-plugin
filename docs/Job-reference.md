@@ -3521,6 +3521,8 @@ Valid values for region are `'GovCloud'`, `'US_EAST_1'`, `'US_WEST_1'`, `'US_WES
 `'AP_SOUTHEAST_1'`, `'AP_SOUTHEAST_2'`, `'AP_NORTHEAST_1'`, `'SA_EAST_1'` or `'CN_NORTH_1'`. The storage class can be
 either `'STANDARD'` or `'REDUCED_REDUNDANCY'`.
 
+Examples:
+
 ```groovy
 job {
     publishers {
@@ -3529,6 +3531,70 @@ job {
                 storageClass('REDUCED_REDUNDANCY')
                 noUploadOnFailure()
                 uploadFromSlave()
+            }
+        }
+    }
+}
+```
+
+## Flexible publish
+
+```groovy
+job {
+    publishers {
+        flexiblePublish {
+            condition {
+                /* Any run condition closure, see conditionalSteps above. */
+            }
+            publisher {
+                /* Any single publisher closure. */
+            }
+            step {
+                /* Any single build step closure. */
+            }
+        }
+    }
+}
+```
+
+Configures a conditional publisher action. Requires the
+[Flexible publish plugin](https://wiki.jenkins-ci.org/display/JENKINS/Flexible+Publish+Plugin).
+If the
+[Any build step plugin](https://wiki.jenkins-ci.org/display/JENKINS/Any+Build+Step+Plugin)
+is installed, then a build step can be used instead of a publisher. Note that
+in any case, only one build step or one publisher can be given (this is a
+limitation of the jenkins FlexiblePublish publisher).
+
+Examples:
+
+```groovy
+job {
+    publishers {
+        flexiblePublish {
+            condition {
+                status 'ABORTED', 'FAILURE'
+            }
+            publisher {
+                mailer 'test@test.com'
+            }
+        }
+    }
+}
+```
+
+```groovy
+job {
+    publishers {
+        flexiblePublish {
+            condition {
+                and {
+                    stringsEqual 'foo', 'bar'
+                } {
+                    status 'SUCCESS'
+                }
+            }
+            step {
+               shell 'echo hello!'
             }
         }
     }
